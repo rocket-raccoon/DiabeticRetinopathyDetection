@@ -5,8 +5,8 @@ import os
 IMAGE_SIZE = (512, 512, 3)
 
 #Booleans that determing what preprocessing steps to take
-GREY = True
-CENTER_AND_SCALE = False
+GREY = False
+CENTER_AND_SCALE = True
 
 #Sets the directories for the training images
 CWD = os.getcwd()
@@ -21,6 +21,6 @@ MINI_BATCH_SIZE = 100
 TRAIN_PERC = 0.50
 
 #Image properties
-PIXELS_PER_IMAGE = 512*512
+PIXELS_PER_IMAGE = IMAGE_SIZE[0]*IMAGE_SIZE[1]*IMAGE_SIZE[2]
 
 
