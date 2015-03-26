@@ -16,6 +16,7 @@ import scipy.misc
 import numpy as np
 import settings
 import csv
+import cPickle
 
 #Turns the image matrix into greyscale
 def rgb2gray(image):
@@ -42,7 +43,7 @@ def create_dataset(image_names, labels_dict, col_means, col_spread):
         images.append(image)
         labels.append(label)
     labels = np.asarray(labels)
-    images = np.asarray(images) \ 256.0
+    images = np.asarray(images) / 256.0
     n = settings.MINI_BATCH_SIZE * settings.TRAIN_PERC
     train_x = images[0:n]
     train_y = labels[0:n]
@@ -57,26 +58,25 @@ def get_center(image_names, h, w, d):
     limit = 1000
     running_means = []
     running_stds = []
-    image_matrix = []
-    h,w,d = settings.IMAGE_SIZE
+    image_matrix = np.zeros((limit, h*w, d))
     for i, image_name in enumerate(image_names):
         print i
         image = scipy.misc.imread(settings.RESIZED_TRAIN_DIR + "/" + image_name)
         image = image.reshape(h*w, d)
-        image_matrix.append(image)
+        image_matrix[i%limit,:,:] = image
         if (i+1) % limit == 0:
-            current_std = np.asarray(image_matrix).std(axis=0)
-            current_mean = np.asarray(image_matrix).mean(axis=0)
+            current_std = image_matrix.std(axis=0)
+            current_mean = image_matrix.mean(axis=0)
             running_means.append([current_mean, limit])
             running_stds.append([current_std, limit])
-            image_matrix = []
-    x = len(image_matrix)
+            image_matrix = np.zeros((limit, h*w, d))
+    x = len(image_names) % limit
     if x > 0:
-        current_std = np.asarray(image_matrix).std(axis=0)
-        current_mean = np.asarray(image_matrix).mean(axis=0)
+        image_matrix = image_matrix[0:x, :, :]
+        current_std = image_matrix.std(axis=0)
+        current_mean = image_matrix.mean(axis=0)
         running_means.append([current_mean, x])
         running_stds.append([current_std, x])
-        image_matrix = []
     mean = reduce(lambda x,y: x[0] + y[1]*y[0], running_means) / len(image_names)
     std = reduce(lambda x,y: x[0] + y[1]*y[0], running_stds) / len(image_names)
     return mean, std
