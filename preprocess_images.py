@@ -37,13 +37,13 @@ def create_dataset(image_names, labels_dict, col_means, col_spread):
     for image_name in image_names:
         image = scipy.misc.imread(settings.RESIZED_TRAIN_DIR + "/" + image_name)
         if settings.CENTER_AND_SCALE:
-           image -= col_means
-           image /= col_spread
+           image = image - col_means
+           image = image / col_spread
         label = labels_dict[image_name.strip(".jpeg")]
         images.append(image)
         labels.append(label)
     labels = np.asarray(labels)
-    images = np.asarray(images) / 256.0
+    images = np.asarray(images) / 255.0
     n = settings.MINI_BATCH_SIZE * settings.TRAIN_PERC
     train_x = images[0:n]
     train_y = labels[0:n]
@@ -60,7 +60,6 @@ def get_center(image_names, h, w, d):
     running_stds = []
     image_matrix = np.zeros((limit, h*w, d))
     for i, image_name in enumerate(image_names):
-        print i
         image = scipy.misc.imread(settings.RESIZED_TRAIN_DIR + "/" + image_name)
         image = image.reshape(h*w, d)
         image_matrix[i%limit,:,:] = image
@@ -77,8 +76,9 @@ def get_center(image_names, h, w, d):
         current_mean = image_matrix.mean(axis=0)
         running_means.append([current_mean, x])
         running_stds.append([current_std, x])
-    mean = reduce(lambda x,y: x[0] + y[1]*y[0], running_means) / len(image_names)
-    std = reduce(lambda x,y: x[0] + y[1]*y[0], running_stds) / len(image_names)
+    n = len(image_names)
+    mean = reduce(lambda x,y: x + y[1]*y[0], [0]+running_means) / n
+    std = reduce(lambda x,y: x + y[1]*y[0], [0]+running_stds) / n
     return mean, std
 
 #Check if the directory where the pickled sets will go to exists
@@ -121,6 +121,7 @@ if settings.CENTER_AND_SCALE:
 n_per_class = settings.MINI_BATCH_SIZE / len(class_buckets.keys())
 n_batches = min(label_count_dict.values()) / n_per_class
 for i in xrange(n_batches):
+    print i
     batch_images = []
     for j in xrange(n_per_class):
         batch_images.append(class_buckets[0].pop())
