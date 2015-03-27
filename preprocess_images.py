@@ -36,14 +36,15 @@ def create_dataset(image_names, labels_dict, col_means, col_spread):
     labels = []
     for image_name in image_names:
         image = scipy.misc.imread(settings.RESIZED_TRAIN_DIR + "/" + image_name)
+        image = image / 255.0
         if settings.CENTER_AND_SCALE:
            image = image - col_means
-           image = image / col_spread
+           #image = image / col_spread
         label = labels_dict[image_name.strip(".jpeg")]
         images.append(image)
         labels.append(label)
     labels = np.asarray(labels)
-    images = np.asarray(images) / 255.0
+    images = np.asarray(images)
     n = settings.MINI_BATCH_SIZE * settings.TRAIN_PERC
     train_x = images[0:n]
     train_y = labels[0:n]
@@ -61,6 +62,7 @@ def get_center(image_names, h, w, d):
     image_matrix = np.zeros((limit, h*w, d))
     for i, image_name in enumerate(image_names):
         image = scipy.misc.imread(settings.RESIZED_TRAIN_DIR + "/" + image_name)
+        image = image / 255.0
         image = image.reshape(h*w, d)
         image_matrix[i%limit,:,:] = image
         if (i+1) % limit == 0:
