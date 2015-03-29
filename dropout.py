@@ -1,5 +1,7 @@
 #Dependencies
 import theano.tensor as T
+import theano
+from theano.ifelse import ifelse
 
 #p is the probability of keep a neuron active
 def dropout_neurons_from_layer(rng, layer, p, use_dropout):
