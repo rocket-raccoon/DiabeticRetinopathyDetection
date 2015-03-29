@@ -1,1 +1,4 @@
 *.pyc
+resized_train/
+processed_train/
+train/
