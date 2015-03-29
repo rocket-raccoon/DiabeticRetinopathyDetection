@@ -191,8 +191,8 @@ class MLP(object):
         # end-snippet-3
 
 
-def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
-             dataset='set_00', train_batch_size=80, test_batch_size=20, n_hidden=500):
+def test_mlp(learning_rate=0.03, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
+             dataset='set_00', train_batch_size=20, test_batch_size=20, n_hidden=500):
     """
     Demonstrate stochastic gradient descent optimization for a multilayer
     perceptron
@@ -221,7 +221,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=1000,
 
    """
     #Get the datasets
-    datasets = load_data(settings.PICKLED_SETS_DIR + "/" + dataset)
+    datasets = load_data(settings.PROCESSED_TRAIN_DIR + "/" + dataset)
     train_set_x, train_set_y = datasets[0]
     test_set_x, test_set_y = datasets[1]
 
