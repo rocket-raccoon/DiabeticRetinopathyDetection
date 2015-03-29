@@ -115,11 +115,10 @@ class LeNetConvPoolLayer(object):
         # store parameters of this layer
         self.params = [self.W, self.b]
 
-def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
+def evaluate_lenet5(learning_rate=0.1,
+                    n_epochs=200,
                     dataset='set_00',
                     nkerns=[20, 50],
-                    train_batch_size=50,
-                    test_batch_size=50,
                     momentum=0.9,
                     dropout_rates=[0.95, 0.75, 0.75, 0.75]):
 

@@ -31,7 +31,7 @@ def load_labels():
     return labels_dict
 
 #Create a training and test set from a small subset of indices
-def create_dataset(image_names, labels_dict, col_means, col_spread):
+def create_dataset(image_names, labels_dict, col_means, col_spread=None):
     images = []
     labels = []
     for image_name in image_names:
@@ -66,26 +66,28 @@ def get_center(image_names, h, w, d):
         image = image.reshape(h*w, d)
         image_matrix[i%limit,:,:] = image
         if (i+1) % limit == 0:
-            current_std = image_matrix.std(axis=0)
+            #current_std = image_matrix.std(axis=0)
             current_mean = image_matrix.mean(axis=0)
             running_means.append([current_mean, limit])
-            running_stds.append([current_std, limit])
+            #running_stds.append([current_std, limit])
             image_matrix = np.zeros((limit, h*w, d))
     x = len(image_names) % limit
     if x > 0:
         image_matrix = image_matrix[0:x, :, :]
-        current_std = image_matrix.std(axis=0)
+        #current_std = image_matrix.std(axis=0)
         current_mean = image_matrix.mean(axis=0)
         running_means.append([current_mean, x])
-        running_stds.append([current_std, x])
+        #running_stds.append([current_std, x])
     n = len(image_names)
     mean = reduce(lambda x,y: x + y[1]*y[0], [0]+running_means) / n
-    std = reduce(lambda x,y: x + y[1]*y[0], [0]+running_stds) / n
-    return mean, std
+    #std = reduce(lambda x,y: x + y[1]*y[0], [0]+running_stds) / n
+    return mean, 0
 
 #Check if the directory where the pickled sets will go to exists
 if not os.path.isdir(settings.PROCESSED_TRAIN_DIR):
     os.makedirs(settings.PROCESSED_TRAIN_DIR)
+if not os.path.isdir(settings.PARAMS_DIR):
+    os.makedirs(settings.PARAMS_DIR)
 
 #There's a class imbalance, so we want to count how many of each class exist
 f = open(settings.TRAIN_LABELS, "rb")
@@ -115,7 +117,7 @@ if settings.CENTER_AND_SCALE:
     h,w,d = settings.IMAGE_SIZE
     col_means, col_spread = get_center(image_names, h, w, d)
     col_means = col_means.reshape(h, w, d)
-    col_spread = col_spread.reshape(h, w, d)
+    #col_spread = col_spread.reshape(h, w, d)
 
 #Create mini batches of images using an equal amount of images from each class
 #This is done round robin style
@@ -131,10 +133,13 @@ for i in xrange(n_batches):
         batch_images.append(class_buckets[2].pop())
         batch_images.append(class_buckets[3].pop())
         batch_images.append(class_buckets[4].pop())
-    dataset = create_dataset(batch_images, labels_dict, col_means, col_spread)
+    dataset = create_dataset(batch_images, labels_dict, col_means)
     f = open(settings.PROCESSED_TRAIN_DIR + "/set_0%i"%i, "wb")
     cPickle.dump(dataset, f, cPickle.HIGHEST_PROTOCOL)
     f.close()
+
+#Save our pixel means for when we'll need to apply it to test images
+np.save(settings.COL_MEANS_FILE, col_means)
 
 
 

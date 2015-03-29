@@ -195,11 +195,9 @@ def load_data(dataset):
         variable) would lead to a large decrease in performance.
         """
         data_x, data_y = data_xy
-        data_x = data_x / 256.0
+        data_x = data_x
         data_x = data_x.reshape(data_x.shape[0], settings.PIXELS_PER_IMAGE)
 
-        print data_x.shape
-        print data_y.shape
         shared_x = theano.shared(numpy.asarray(data_x,
                                                dtype=theano.config.floatX),
                                  borrow=borrow)
@@ -221,10 +219,11 @@ def load_data(dataset):
     return rval
 
 
-def sgd_optimization_mnist(learning_rate=0.1, n_epochs=1000,
+def sgd_optimization_mnist(learning_rate=0.02,
+                           n_epochs=1000,
                            dataset='set_00',
-                           train_batch_size=80,
-                           test_batch_size=20):
+                           train_batch_size=50,
+                           test_batch_size=50):
     """
     Demonstrate stochastic gradient descent optimization of a log-linear
     model
@@ -243,11 +242,13 @@ def sgd_optimization_mnist(learning_rate=0.1, n_epochs=1000,
                  http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz
 
     """
-    datasets = load_data(settings.PICKLED_SETS_DIR + "/" + dataset)
+    datasets = load_data(settings.PROCESSED_TRAIN_DIR + "/" + dataset)
     train_set_x, train_set_y = datasets[0]
     test_set_x, test_set_y = datasets[1]
 
     # compute number of minibatches for training, validation and testing
+    train_batch_size = train_set_x.get_value().shape[0]
+    test_batch_size = test_set_x.get_value().shape[0]
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] / train_batch_size
     n_test_batches = test_set_x.get_value(borrow=True).shape[0] / test_batch_size
 
@@ -266,7 +267,7 @@ def sgd_optimization_mnist(learning_rate=0.1, n_epochs=1000,
 
     # construct the logistic regression class
     # Each MNIST image has size 28*28
-    classifier = LogisticRegression(input=x, n_in= settings.PIXELS_PER_IMAGE, n_out=5)
+    classifier = LogisticRegression(input=x, n_in=settings.PIXELS_PER_IMAGE, n_out=5)
 
     # the cost we minimize during training is the negative log likelihood of
     # the model in symbolic format

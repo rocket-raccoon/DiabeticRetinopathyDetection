@@ -1,23 +1,8 @@
 
-sum = 0
-for i in xrange(0,34):
-    f = open(settings.PROCESSED_TRAIN_DIR + "/set_0%i"%i)
-    datasets = cPickle.load(f)
-    f.close()
-    train_set, test_set = datasets
-    train_x, train_y = train_set
-    test_x, test_y = test_set
-    sum = sum + train_x[:,0,0,0] + test_x[:,0,0,0]
- 
+Tasks:
 
-Using Dropout:
-3.59%
-1.78%
-1.59%
-
-Not Using Dropout:
-2.5%
-1.7%
-1.51%
-
+1)  Create data augmentation script.
+3)  Save parameters learned during training somewhere
+4)  Potentially use an ensemble of learned parameters using number 3 above
+5)  Add ability to score test images in the format specified
 
