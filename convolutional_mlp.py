@@ -1,4 +1,5 @@
-"""This tutorial introduces the LeNet5 neural network architecture
+"""
+This tutorial introduces the LeNet5 neural network architecture
 using Theano.  LeNet5 is a convolutional neural network, good for
 classifying images. This tutorial shows how to build the architecture,
 and comes with all the hyper-parameters you need to reproduce the
@@ -21,21 +22,24 @@ References:
    http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
 
 """
+
 #Dependencies
 import os
 import sys
 import time
 import numpy
+import numpy as np
 import theano
 import theano.tensor as T
 import settings
-import numpy as np
 
+from theano.ifelse import ifelse
 from theano.tensor.signal import downsample
 from theano.tensor.nnet import conv
 from logistic_sgd import LogisticRegression, load_data
 from mlp import HiddenLayer
 from relu import relu
+from dropout import dropout_neurons_from_layer
 
 class LeNetConvPoolLayer(object):
 
@@ -116,7 +120,8 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
                     nkerns=[20, 50],
                     train_batch_size=50,
                     test_batch_size=50,
-                    momentum=0.9):
+                    momentum=0.9,
+                    dropout_rates=[0.95, 0.75, 0.75, 0.75]):
 
     """ Demonstrates lenet on MNIST dataset
 
@@ -153,6 +158,8 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     x = T.matrix('x')   # the data is presented as rasterized images
     y = T.ivector('y')  # the labels are presented as 1D vector of
                         # [int] labels
+    #Tells the neural network whether or not to use dropout
+    use_dropout = T,scalar('use_dropout')
 
     ######################
     # BUILD ACTUAL MODEL #
@@ -162,7 +169,8 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     # Reshape matrix of rasterized images of shape (batch_size, 28 * 28)
     # to a 4D tensor, compatible with our LeNetConvPoolLayer
     # (28, 28) is the size of MNIST images.
-    layer0_input = x.reshape((train_batch_size, 1, 512, 512))
+    layer0_input = dropout_neurons_from_layer(rng, x, dropout_rates[0], use_dropout)
+    layer0_input = layer0_input.reshape((train_batch_size, 1, 512, 512))
 
     # Construct the first convolutional pooling layer:
     # filtering reduces the image size to (28-5+1 , 28-5+1) = (24, 24)
@@ -175,6 +183,7 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
         filter_shape=(nkerns[0], 1, 5, 5),
         poolsize=(2, 2)
     )
+    layer0.output = dropout_neurons_from_layer(rng, layer0.output, dropout_rates[1], use_dropout)
 
     # Construct the second convolutional pooling layer
     # filtering reduces the image size to (12-5+1, 12-5+1) = (8, 8)
@@ -187,6 +196,7 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
         filter_shape=(nkerns[1], nkerns[0], 5, 5),
         poolsize=(2, 2)
     )
+    layer1.output = dropout_neurons_from_layer(rng, layer1.output, dropout_rates[2], use_dropout)
 
     # the HiddenLayer being fully-connected, it operates on 2D matrices of
     # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
@@ -202,6 +212,7 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
         n_out=500,
         activation=relu
     )
+    layer2.output = dropout_neurons_from_layer(rng, layer2.output, dropout_rates[3], use_dropout)
 
     # classify the values of the fully-connected sigmoidal layer
     layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=5)
@@ -215,7 +226,8 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
         layer3.errors(y),
         givens={
             x: test_set_x[index*test_batch_size: (index + 1)*test_batch_size],
-            y: test_set_y[index*test_batch_size: (index + 1)*test_batch_size]
+            y: test_set_y[index*test_batch_size: (index + 1)*test_batch_size],
+            use_dropout: 0.0
         }
     )
 
@@ -224,7 +236,8 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
         layer3.errors(y),
         givens={
             x: train_set_x[index*train_batch_size: (index + 1)*train_batch_size],
-            y: train_set_y[index*train_batch_size: (index + 1)*train_batch_size]
+            y: train_set_y[index*train_batch_size: (index + 1)*train_batch_size],
+            use_dropout: 0.0
         }
     )
 
@@ -238,7 +251,7 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     m_params = []
     for param in params:
         param_shape = param.get_value().shape
-        data_type = theano.config.floatX
+        data_type = param.dtype
         m_param = theano.shared(np.zeros(param_shape, dtype=data_type), borrow=True)
         m_params.append(m_param)
 
@@ -247,14 +260,6 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
     # manually create an update rule for each model parameter. We thus
     # create the updates list by automatically looping over all
     # (params[i], grads[i]) pairs.
-
-    # create a list of all momentum parameters, initialized to zero
-    m_params = []
-    for param in params:
-        param_shape = param.get_value().shape
-        data_type = param.dtype
-        m_param = theano.shared(np.zeros(param_shape, dtype=data_type), borrow=True)
-        m_params.append(m_param)
 
     #Create all the updates
     momentum_updates = [
@@ -273,7 +278,8 @@ def evaluate_lenet5(learning_rate=0.1, n_epochs=200,
         updates=updates,
         givens={
             x: train_set_x[index*train_batch_size: (index+1)*train_batch_size],
-            y: train_set_y[index*train_batch_size: (index+1)*train_batch_size]
+            y: train_set_y[index*train_batch_size: (index+1)*train_batch_size],
+            use_dropout: 1.0
         }
     )
     # end-snippet-1
