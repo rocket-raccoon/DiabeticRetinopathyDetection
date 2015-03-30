@@ -3,4 +3,5 @@ resized_train/
 processed_train/
 train/
 *.csv
-*params/
+params/
+grey_train

@@ -46,11 +46,11 @@ def crop_black(img):
     left = move_to_center_until_not_black(img, left, LEFT)
 
     #Get the right side crop point
-    right = Point(img.shape[0]/2, img.shape[1])    
+    right = Point(img.shape[0]/2, img.shape[1])
     right = move_to_center_until_not_black(img, right, RIGHT)
 
     #Get the bottom side crop point
-    bottom = Point(img.shape[0], img.shape[1]/2)    
+    bottom = Point(img.shape[0], img.shape[1]/2)
     bottom = move_to_center_until_not_black(img, bottom, BOTTOM)
 
     #Get the top side crop point

@@ -115,12 +115,13 @@ class LeNetConvPoolLayer(object):
         # store parameters of this layer
         self.params = [self.W, self.b]
 
-def evaluate_lenet5(learning_rate=0.1,
-                    n_epochs=200,
-                    dataset='set_00',
-                    nkerns=[20, 50],
-                    momentum=0.9,
-                    dropout_rates=[0.95, 0.75, 0.75, 0.75]):
+def evaluate_lenet5(learning_rate = 0.05,
+                    n_epochs = 200,
+                    dataset='set_057',
+                    batch_size = settings.MINI_BATCH_SIZE * settings.TRAIN_PERC,
+                    nkerns = [20, 50],
+                    momentum = 0.9,
+                    dropout_rates = [0.95, 0.75, 0.75, 0.75]):
 
     """ Demonstrates lenet on MNIST dataset
 
@@ -145,8 +146,8 @@ def evaluate_lenet5(learning_rate=0.1,
     test_set_x, test_set_y = datasets[1]
 
     # compute number of minibatches for training, validation and testing
-    train_batch_size = 20
-    test_batch_size = 20
+    train_batch_size=20
+    test_batch_size=20
     n_train_batches = train_set_x.get_value(borrow=True).shape[0]
     n_test_batches = test_set_x.get_value(borrow=True).shape[0]
     n_train_batches /= train_batch_size
@@ -255,12 +256,6 @@ def evaluate_lenet5(learning_rate=0.1,
         data_type = param.dtype
         m_param = theano.shared(np.zeros(param_shape, dtype=data_type), borrow=True)
         m_params.append(m_param)
-
-    # train_model is a function that updates the model parameters by
-    # SGD Since this model has many parameters, it would be tedious to
-    # manually create an update rule for each model parameter. We thus
-    # create the updates list by automatically looping over all
-    # (params[i], grads[i]) pairs.
 
     #Create all the updates
     momentum_updates = [

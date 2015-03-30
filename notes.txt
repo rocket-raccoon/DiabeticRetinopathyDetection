@@ -2,6 +2,5 @@ Tasks:
 
 1)  Create data augmentation script.
 2)  Save parameters learned during training somewhere
-3)  Potentially use an ensemble of learned parameters using number 3 above
 4)  Add ability to score test images in the format specified
 
