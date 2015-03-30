@@ -15,6 +15,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 import settings
+import cPickle
 
 from theano.ifelse import ifelse
 from theano.tensor.signal import downsample
@@ -23,7 +24,7 @@ from logistic_sgd import LogisticRegression
 from mlp import HiddenLayer
 from relu import relu
 from dropout import dropout_neurons_from_layer
-from convolutional_mlp import LeNetConvPooLayer
+from convolutional_mlp import LeNetConvPoolLayer
 
 #This function loads our dataset into a shared variable for theano
 #Assumes there is (x, y) matrix pair pickled
@@ -51,8 +52,8 @@ def get_train_func(index, cost, updates, x, y, use_dropout,
         cost,
         updates=updates,
         givens={
-            x: train_set_x[index*train_batch_size: (index+1)*train_batch_size],
-            y: train_set_y[index*train_batch_size: (index+1)*train_batch_size],
+            x: train_set_x[index*batch_size: (index+1)*batch_size],
+            y: train_set_y[index*batch_size: (index+1)*batch_size],
             use_dropout: 1.0
         }
     )
@@ -91,24 +92,26 @@ def get_updates(m_params, params, grads, learning_rate, momentum):
 #This is the meat of our application
 #Will continuously train our neural network architecture until we see fit
 #to stop it.
-def train_neural_network(learning_rate = 0.05,
-                         n_epochs = 200,
-                         data_directory = settings.PROCESSED_TRAIN_DIR,
-                         train_batch_size = 10,
-                         test_batch_size = 10,
-                         nkerns = [20,50],
-                         momentum = 0.9,
-                         dropout_rates = [0.95, 0.75, 0.75, 0.75]):
+def train_retinopathy_net(learning_rate = 0.01,
+                          n_epochs = 200,
+                          data_directory = settings.PROCESSED_TRAIN_DIR,
+                          train_batch_size = 10,
+                          test_batch_size = 10,
+                          nkerns = [20,50],
+                          momentum = 0.9,
+                          dropout_rates = [0.95, 0.75, 0.75, 0.75],
+                          param_save_freq = 1000):
 
     #First, we load in the test batch.  This will always be in memory
     #There should only be one in there
-    test_batch = [bb for bb in os.listdir(data_directory) of "test" in bb][0]
+    print "Loading test batch into shared memory..."
+    test_batch = [bb for bb in os.listdir(data_directory) if "test" in bb][0]
     test_set_x, test_set_y = load_batch(data_directory + "/" + test_batch)
 
     #Now, we get the paths to each of the big train batches
     #We will load these into memory on as as need basis unlike the test batch
     big_batches = [bb for bb in os.listdir(data_directory) if "train" in bb]
-    big_batches = [data_directory + "/" + batch for batch in minibatches]
+    big_batches = [data_directory + "/" + batch for batch in big_batches]
 
     #Setup our symbolic variables for theano
     index = T.lscalar('index')
@@ -117,6 +120,7 @@ def train_neural_network(learning_rate = 0.05,
     use_dropout = T.scalar('use_dropout')
 
     #Setup layer0
+    print "Setting up neural network architecture..."
     rng = numpy.random.RandomState(23455)
     layer0_input = dropout_neurons_from_layer(rng, x, dropout_rates[0], use_dropout)
     layer0_input = layer0_input.reshape((train_batch_size, 1, 512, 512))
@@ -172,6 +176,15 @@ def train_neural_network(learning_rate = 0.05,
 
     updates = get_updates(m_params, params, grads, learning_rate, momentum)
 
+    print "Training neural network..."
+
+    big_batches = [big_batches[0]]
+    print big_batches
+    n_train_batches = test_set_x.get_value().shape[0] / train_batch_size
+    n_test_batches = test_set_x.get_value().shape[0] / test_batch_size
+    itr = 0
+    epoch = 0
+
     while(True):
 
         for big_batch in big_batches:
@@ -180,8 +193,8 @@ def train_neural_network(learning_rate = 0.05,
             train_set_x, train_set_y = load_batch(big_batch)
 
             #Setup our training and testing functions in theano
-            train_func = get_train_func(index, cost, updates, x, y,
-                                        train_set_x, train_set_y, use_dropout)
+            train_func = get_train_func(index, cost, updates, x, y, use_dropout,
+                                        train_set_x, train_set_y, train_batch_size)
             test_err_func = get_err_func(index, layer3.errors(y), x, y, use_dropout,
                                          test_set_x, test_set_y, test_batch_size)
             train_err_func = get_err_func(index, layer3.errors(y), x, y, use_dropout,
