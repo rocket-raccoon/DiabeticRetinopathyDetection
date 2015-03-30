@@ -3,5 +3,6 @@ resized_train/
 processed_train/
 train/
 *.csv
+*.swp
 params/
 grey_train
