@@ -26,6 +26,16 @@ from relu import relu
 from dropout import dropout_neurons_from_layer
 from convolutional_mlp import LeNetConvPoolLayer
 
+#Saves the parameters of our architecture to disk
+def save_params(params, output_dir, file_id):
+    param_dict = {}
+    counter = 0
+    for param in params:
+        param_dict["%i"%counter] = param.get_value()
+        counter += 1
+    output_file = output_dir + "/training_params_%i"%file_id
+    np.savez(output_file, **param_dict)
+
 #This function loads our dataset into a shared variable for theano
 #Assumes there is (x, y) matrix pair pickled
 def load_batch(dataset):
@@ -179,11 +189,11 @@ def train_retinopathy_net(learning_rate = 0.01,
     print "Training neural network..."
 
     big_batches = [big_batches[0]]
-    print big_batches
     n_train_batches = test_set_x.get_value().shape[0] / train_batch_size
     n_test_batches = test_set_x.get_value().shape[0] / test_batch_size
     itr = 0
     epoch = 0
+    save_counter = 0
 
     while(True):
 
@@ -217,6 +227,12 @@ def train_retinopathy_net(learning_rate = 0.01,
                 train_score = numpy.mean(train_loss)
                 print "Mean Train Error: %f"%(train_score*100)
 
+                #Save params periodically
+                if itr % param_save_freq == 0:
+                    save_params(params, settings.PARAMS_DIR, save_counter)
+                    save_counter += 1
+
+        #Stop training if we exceed the max number of epochs allowed
         epoch += 1
         if epoch > n_epochs:
             break
