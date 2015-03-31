@@ -25,6 +25,7 @@ from mlp import HiddenLayer
 from relu import relu
 from dropout import dropout_neurons_from_layer
 from convolutional_mlp import LeNetConvPoolLayer
+from retinopathy_net import RetinopathyNet
 
 #Saves the parameters of our architecture to disk
 def save_params(params, output_dir, file_id):
@@ -128,50 +129,14 @@ def train_retinopathy_net(learning_rate = 0.01,
     x = T.matrix('x')
     y = T.ivector('y')
     use_dropout = T.scalar('use_dropout')
-
-    #Setup layer0
-    print "Setting up neural network architecture..."
     rng = numpy.random.RandomState(23455)
-    layer0_input = dropout_neurons_from_layer(rng, x, dropout_rates[0], use_dropout)
-    layer0_input = layer0_input.reshape((train_batch_size, 1, 512, 512))
-    layer0 = LeNetConvPoolLayer(
-        rng,
-        input=layer0_input,
-        image_shape=(train_batch_size, 1, 512, 512),
-        filter_shape=(nkerns[0], 1, 5, 5),
-        poolsize=(2, 2)
-    )
-    layer0.output = dropout_neurons_from_layer(rng, layer0.output, dropout_rates[1], use_dropout)
 
-    #Setup layer 1
-    layer1 = LeNetConvPoolLayer(
-        rng,
-        input=layer0.output,
-        image_shape=(train_batch_size, nkerns[0], 254, 254),
-        filter_shape=(nkerns[1], nkerns[0], 5, 5),
-        poolsize=(2, 2)
-    )
-    layer1.output = dropout_neurons_from_layer(rng, layer1.output, dropout_rates[2], use_dropout)
-
-    #Setup layer 2
-    layer2_input = layer1.output.flatten(2)
-    layer2 = HiddenLayer(
-        rng,
-        input=layer2_input,
-        n_in=nkerns[1] * 125 * 125,
-        n_out=500,
-        activation=relu
-    )
-    layer2.output = dropout_neurons_from_layer(rng, layer2.output, dropout_rates[3], use_dropout)
-
-    #Setup layer 3
-    layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=5)
-
-    # the cost we minimize during training is the NLL of the model
-    cost = layer3.negative_log_likelihood(y)
-
-    # create a list of all model parameters to be fit by gradient descent
-    params = layer3.params + layer2.params + layer1.params + layer0.params
+    #Instantiate our retinopathy net
+    retinopathy_net = RetinopathyNet(rng, x, y, use_dropout,
+                                     dropout_rates, train_batch_size, nkerns)
+    cost = retinopathy_net.cost
+    errors = retinopathy_net.errors
+    params = retinopathy_net.params
 
     # create a list of gradients for all model parameters
     grads = T.grad(cost, params)
@@ -184,6 +149,7 @@ def train_retinopathy_net(learning_rate = 0.01,
         m_param = theano.shared(np.zeros(param_shape, dtype=data_type), borrow=True)
         m_params.append(m_param)
 
+    #Create our parameter updates
     updates = get_updates(m_params, params, grads, learning_rate, momentum)
 
     print "Training neural network..."
@@ -205,9 +171,9 @@ def train_retinopathy_net(learning_rate = 0.01,
             #Setup our training and testing functions in theano
             train_func = get_train_func(index, cost, updates, x, y, use_dropout,
                                         train_set_x, train_set_y, train_batch_size)
-            test_err_func = get_err_func(index, layer3.errors(y), x, y, use_dropout,
+            test_err_func = get_err_func(index, errors, x, y, use_dropout,
                                          test_set_x, test_set_y, test_batch_size)
-            train_err_func = get_err_func(index, layer3.errors(y), x, y, use_dropout,
+            train_err_func = get_err_func(index, errors, x, y, use_dropout,
                                           train_set_x, train_set_y, train_batch_size)
 
             #Run SGD over the big batch
