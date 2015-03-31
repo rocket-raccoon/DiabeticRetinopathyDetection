@@ -8,23 +8,13 @@
 
 #Dependencies
 import os
-import sys
 import time
-import numpy
 import numpy as np
 import theano
 import theano.tensor as T
 import settings
 import cPickle
 
-from theano.ifelse import ifelse
-from theano.tensor.signal import downsample
-from theano.tensor.nnet import conv
-from logistic_sgd import LogisticRegression
-from mlp import HiddenLayer
-from relu import relu
-from dropout import dropout_neurons_from_layer
-from convolutional_mlp import LeNetConvPoolLayer
 from retinopathy_net import RetinopathyNet
 
 #Saves the parameters of our architecture to disk
@@ -47,10 +37,11 @@ def load_batch(dataset):
     f.close()
 
     #Create shared variables out of it
-    x_set = x_set.reshape(x_set.shape[0], settings.PIXELS_PER_IMAGE)
-    shared_x = theano.shared(numpy.asarray(x_set, dtype=theano.config.floatX),
+    ppi = reduce(lambda x,y: x*y, x_set[0].shape)
+    x_set = x_set.reshape(x_set.shape[0], ppi)
+    shared_x = theano.shared(np.asarray(x_set, dtype=theano.config.floatX),
                              borrow=True)
-    shared_y = theano.shared(numpy.asarray(y_set, dtype=theano.config.floatX),
+    shared_y = theano.shared(np.asarray(y_set, dtype=theano.config.floatX),
                              borrow=True)
     return shared_x, T.cast(shared_y, 'int32')
 
@@ -120,7 +111,7 @@ def train_retinopathy_net(learning_rate = 0.01,
     test_set_x, test_set_y = load_batch(data_directory + "/" + test_batch)
 
     #Now, we get the paths to each of the big train batches
-    #We will load these into memory on as as need basis unlike the test batch
+    #We will load these into memory on an as need basis unlike the test batch
     big_batches = [bb for bb in os.listdir(data_directory) if "train" in bb]
     big_batches = [data_directory + "/" + batch for batch in big_batches]
 
@@ -129,9 +120,10 @@ def train_retinopathy_net(learning_rate = 0.01,
     x = T.matrix('x')
     y = T.ivector('y')
     use_dropout = T.scalar('use_dropout')
-    rng = numpy.random.RandomState(23455)
+    rng = np.random.RandomState(23455)
 
     #Instantiate our retinopathy net
+    print "Building retinopathy network..."
     retinopathy_net = RetinopathyNet(rng, x, y, use_dropout,
                                      dropout_rates, train_batch_size, nkerns)
     cost = retinopathy_net.cost
@@ -154,7 +146,7 @@ def train_retinopathy_net(learning_rate = 0.01,
 
     print "Training neural network..."
 
-    big_batches = [big_batches[0]]
+    #big_batches = [big_batches[0]]
     n_train_batches = test_set_x.get_value().shape[0] / train_batch_size
     n_test_batches = test_set_x.get_value().shape[0] / test_batch_size
     itr = 0
@@ -185,12 +177,12 @@ def train_retinopathy_net(learning_rate = 0.01,
 
                 #Compute the test error
                 test_losses = [test_err_func(i) for i in xrange(n_test_batches)]
-                test_score = numpy.mean(test_losses)
+                test_score = np.mean(test_losses)
                 print "Mean Test Error: %f"%(test_score * 100)
 
                 #Compute the training error
                 train_loss = [train_err_func(i) for i in xrange(n_train_batches)]
-                train_score = numpy.mean(train_loss)
+                train_score = np.mean(train_loss)
                 print "Mean Train Error: %f"%(train_score*100)
 
                 #Save params periodically

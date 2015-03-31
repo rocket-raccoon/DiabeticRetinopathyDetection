@@ -195,7 +195,6 @@ def load_data(dataset):
         variable) would lead to a large decrease in performance.
         """
         data_x, data_y = data_xy
-        data_x = data_x
         data_x = data_x.reshape(data_x.shape[0], settings.PIXELS_PER_IMAGE)
 
         shared_x = theano.shared(numpy.asarray(data_x,

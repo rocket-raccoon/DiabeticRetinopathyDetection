@@ -36,6 +36,20 @@ def load_labels(labels_file_path):
         labels_dict = {name: int(label) for (name, label) in label_reader}
     return labels_dict
 
+def create_batch(image_names, labels_dict, pixel_means, image_dir):
+    images = []
+    labels = []
+    for image_name in image_names:
+        image = scipy.misc.imread(image_dir + "/" + image_name + ".jpeg")
+        image = image / 255.0
+        image = image - pixel_means
+        label = labels_dict[image_name.strip(".jpeg")]
+        images.append(image)
+        labels.append(label)
+    labels = np.asarray(labels)
+    images = np.asarray(images)
+    return [images, labels]
+
 #Create a training and test set from a small subset of indices
 def create_dataset(image_names, labels_dict, pixel_means, image_dir):
     images = []
@@ -124,22 +138,31 @@ if settings.CENTER_AND_SCALE:
         pixel_means = get_pixel_means(image_names, settings.RESIZED_TRAIN_DIR, h, w, d)
         pixel_means = pixel_means.reshape(h, w, d)
 
-#Create mini batches of images using an equal amount of images from each class
-#This is done round robin style.  Then save them to disk
-print "Creating pickled minibatches"
+#Calculate the number of batches to make along with number per class per batch
 clear_folder(settings.PROCESSED_TRAIN_DIR)
 n_per_class = settings.MINI_BATCH_SIZE / len(class_buckets.keys())
 n_batches = min(label_count_dict.values()) / n_per_class
-for i in xrange(n_batches):
+input_dir = settings.GREY_TRAIN_DIR if settings.GREY else settings.RESIZED_TRAIN_DIR
+
+#Create a test batch first
+print "Creating test batch..."
+batch_images = []
+for i in xrange(n_per_class):
+    batch_images += [class_buckets[k].pop() for k in xrange(5)]
+batch = create_batch(batch_images, labels_dict, pixel_means, input_dir)
+f = open(settings.PROCESSED_TRAIN_DIR + "/test_batch", "wb")
+cPickle.dump(batch, f)
+f.close()
+
+#Now lets create the train batches
+print "Creating train batches..."
+for i in xrange(n_batches-1):
     batch_images = []
     for j in xrange(n_per_class):
         batch_images += [class_buckets[k].pop() for k in xrange(5)]
-    if settings.GREY:
-        datasets = create_dataset(batch_images, labels_dict, pixel_means, settings.GREY_TRAIN_DIR)
-    else:
-        datasets = create_dataset(batch_images, labels_dict, pixel_means, settings.RESIZED_TRAIN_DIR)
-    f = open(settings.PROCESSED_TRAIN_DIR + "/set_0%i"%i, "wb")
-    cPickle.dump(datasets, f)
+    batch = create_batch(batch_images, labels_dict, pixel_means, input_dir)
+    f = open(settings.PROCESSED_TRAIN_DIR + "/train_batch_0%i"%i, "wb")
+    cPickle.dump(batch, f)
     f.close()
 
 #Save our pixel means for when we'll need to apply it to test images
