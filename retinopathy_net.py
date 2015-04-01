@@ -16,7 +16,8 @@ class RetinopathyNet(object):
                  use_dropout,
                  dropout_rates,
                  train_batch_size,
-                 nkerns):
+                 nkerns,
+                 parameters=[]):
 
         #Setup layer0
         layer0_input = dropout_neurons_from_layer(rng, x, dropout_rates[0], use_dropout)
@@ -54,8 +55,24 @@ class RetinopathyNet(object):
         #Setup layer 3
         layer3 = LogisticRegression(input=layer2.output, n_in=500, n_out=5)
 
+        #Load parameters if they are passed in
+        if len(parameters) > 0:
+            layer0.params[0].set_value(parameters[0])
+            layer0.params[1].set_value(parameters[1])
+            layer1.params[0].set_value(parameters[2])
+            layer1.params[1].set_value(parameters[3])
+            layer2.params[0].set_value(parameters[4])
+            layer2.params[1].set_value(parameters[5])
+            layer3.params[0].set_value(parameters[6])
+            layer3.params[1].set_value(parameters[7])
+
         #Relevant functions and attributes for this class
         self.cost = layer3.negative_log_likelihood(y)
         self.errors = layer3.errors(y)
         self.params = layer0.params + layer1.params + layer2.params + layer3.params
+
+
+
+
+
 

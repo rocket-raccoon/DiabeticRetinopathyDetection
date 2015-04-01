@@ -17,6 +17,14 @@ import cPickle
 
 from retinopathy_net import RetinopathyNet
 
+#Loads the parameters from disk
+def load_params(output_dir, file_id):
+    param_cache= np.load(output_dir + "/training_params_%i.npz"%file_id)
+    params = []
+    for i in xrange(len(param_cache.files)):
+        params.append(param_cache[str(i)])
+    return params
+
 #Saves the parameters of our architecture to disk
 def save_params(params, output_dir, file_id):
     param_dict = {}
@@ -102,7 +110,7 @@ def train_retinopathy_net(learning_rate = 0.01,
                           nkerns = [20,50],
                           momentum = 0.9,
                           dropout_rates = [0.95, 0.75, 0.75, 0.75],
-                          param_save_freq = 1000):
+                          param_save_freq = 2):
 
     #First, we load in the test batch.  This will always be in memory
     #There should only be one in there
