@@ -6,6 +6,7 @@ from mlp import HiddenLayer
 from dropout import dropout_neurons_from_layer
 from theano.tensor.signal import downsample
 from theano.tensor.nnet import conv
+import theano
 
 class RetinopathyNet(object):
 
@@ -67,11 +68,16 @@ class RetinopathyNet(object):
             layer3.params[1].set_value(parameters[7])
 
         #Relevant functions and attributes for this class
+        self.layer3 = layer3
         self.cost = layer3.negative_log_likelihood(y)
         self.errors = layer3.errors(y)
         self.params = layer0.params + layer1.params + layer2.params + layer3.params
+        self.classify_function = theano.function([x, use_dropout], self.layer3.y_pred)
 
-
+    #Pass in a data matrix to get the models predicted labels for it
+    def classify_images(self, x):
+        results = self.classify_function(x, 0.0)
+        return results
 
 
 
